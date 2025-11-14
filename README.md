@@ -5,5 +5,5 @@ Written explanations to AlgoLab Fall 2025 exercises.
 
 | **Week** | **Problem of the Week** | **1st Problem** | **2nd Problem** | **3rd Problem** | **4th Problem** |
 |:--:|:--|:--|:--|:--|:--|
-| **6** |  |  |  | [London](week6/london/london_sol.pdf) | |
+| **6** |  | [Tiles](week6/tiles/tiles_sol.pdf) |  | [London](week6/london/london_sol.pdf) | |
 
