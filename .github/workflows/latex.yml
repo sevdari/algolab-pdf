@@ -11,27 +11,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # Needed so HEAD^ exists for diffs
 
-      # Step 1 — detect modified tex files
+      # Step 1 — detect tex files changed in *last commit*
       - name: Find modified tex files
         id: tex
         run: |
-          FILES=$(git diff --name-only HEAD~1 HEAD | grep ".tex$" || true)
-          # Convert space-separated → newline-separated for latex-action
+          # If no parent commit exists (first push), skip
+          if ! git rev-parse HEAD^ >/dev/null 2>&1; then
+            echo "files=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          FILES=$(git diff --name-only HEAD^ HEAD -- "*.tex" || true)
+
+          # Convert to multi-line format for latex-action
           echo "files<<EOF" >> $GITHUB_OUTPUT
           for f in $FILES; do
-            echo "$f" >> $GITHUB_OUTPUT
+            echo "$f"
           done
           echo "EOF" >> $GITHUB_OUTPUT
 
-      # Step 2 — compile all modified tex files (if any)
+      # Step 2 — build PDFs for changed tex files
       - name: Build PDFs
         if: steps.tex.outputs.files != ''
         uses: xu-cheng/latex-action@v4
         with:
           root_file: ${{ steps.tex.outputs.files }}
 
-      # Step 3 — commit generated PDFs
+      # Step 3 — commit PDFs back to repo
       - name: Commit PDFs
         if: steps.tex.outputs.files != ''
         run: |
@@ -46,7 +55,7 @@ jobs:
           done
 
           if git diff --cached --quiet; then
-            echo "Nothing to commit"
+            echo "No PDFs to commit"
             exit 0
           fi
 
