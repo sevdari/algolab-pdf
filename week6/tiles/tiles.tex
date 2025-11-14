@@ -1,0 +1,99 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+% Images
+\usepackage{graphicx}
+
+% Fonts
+\usepackage{mathrsfs}
+\usepackage{xcolor}
+
+% Math libs
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{amsmath}
+
+% Theorems
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem*{remark}{Remark}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+% Page margin
+\usepackage[margin=0.9in]{geometry}
+
+%cpp
+\usepackage{listings}
+\usepackage{courier}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  language=C++,
+  columns=fullflexible
+}
+
+\title{Tiles}
+\author{Klejdi Sevdari}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\subsection*{Problem restatement}
+\noindent We model this problem as a graph. We consider each garden space to be a vertex, and we add an edge for each pair of garden spaces that are adjacent horizontally or vertically. With this formulation, the problem reduces to finding a maximum matching. 
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{week6/tiles/tiles_graph.png}
+    \caption{Graph reconstruction}
+    \label{fig:graph}
+\end{figure}
+
+\noindent For this exercise, we need to go one step further and model it as a flow, so we transform the matching instance into a flow network. The standard reduction is the following: Every garden tile $v$ is split into two vertices: an \emph{in-vertex} $v_{\text{in}}$ and an \emph{out-vertex} $v_{\text{out}}$. In addition, we add two other vertices \emph{source} $s$ and \emph{sink} $t$. For each vertex $v$, we add edges $(s, v_\text{in})$ and $(v_{\text{out}}, t)$ each with capacity 1. Intuitively, this ensures that each tile can be used by at most one domino.\\
+
+\noindent Next, for every pair of adjacent tiles $u$ and $v$ (sharing an edge in the grid), we add two directed edges
+\[
+u_{\text{in}} \to v_{\text{out}}, \qquad v_{\text{in}} \to u_{\text{out}},
+\]
+each with capacity~1. These edges encode the possibility of placing a domino that covers $u$ and~$v$.\\
+
+\noindent A valid $s$--$t$ flow selects a set of disjoint tile pairs, each realised as a path
+\[
+s \to v_{\text{in}} \to u_{\text{out}} \to t,
+\]
+corresponding exactly to placing a domino on the pair $\{u,v\}$.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.55\linewidth]{week6/tiles/tiles_flow.png}
+    \caption{Flow construction. Each edge has capacity 1.}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsection*{Proof of Correctness}
+\noindent Observe that the maximum possible flow value is $|V|$, since each tile contributes at most one unit of flow entering at $v_{\text{in}}$ and one unit leaving at $v_{\text{out}}$. If a perfect matching exists, we can realise this upper bound directly: for every matched pair $(u,v)$, we route one unit of flow along both paths
+\[
+s \to u_{\text{in}} \to v_{\text{out}} \to t
+\qquad\text{and}\qquad
+s \to v_{\text{in}} \to u_{\text{out}} \to t,
+\]
+thereby saturating all source and sink edges. This constructs an $s$--$t$ flow of value $|V|$ whenever a perfect matching is present.\\
+
+
+\noindent Conversely, assume that the garden does \emph{not} admit a perfect matching. Then there exists at least one tile $v$ that cannot be matched with any of its neighbours in any maximum matching. In the flow network, this means that every adjacency edge incident to either $v_{\text{in}}$ or $v_{\text{out}}$ must remain unused in any feasible $s$--$t$ flow, because using such an edge would correspond to matching $v$ with some neighbour. But the only way for flow to pass through $v$ is along a path
+\[
+s \to v_{\text{in}} \to u_{\text{out}} \to t
+\]
+for one of its neighbours $u$. Since no such path can be used, both the edge $(s,v_{\text{in}})$ and the edge $(v_{\text{out}},t)$ remain unsaturated. Thus at least one unit of the total available capacity from $s$ to $t$ is unused, and the value of any flow must satisfy $|f| < |V|$.\\
+
+\noindent Combining both directions, we conclude that the flow has value $|V|$ if and only if a perfect matching exists in the original adjacency graph of tiles. Therefore, computing the maximum flow in this network correctly determines whether the garden can be completely tiled by dominoes.
+
+
+
+
+
+\end{document}
