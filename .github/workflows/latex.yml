@@ -12,28 +12,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Step 1: detect modified tex files
+      # Step 1 — detect modified tex files
       - name: Find modified tex files
         id: tex
         run: |
           FILES=$(git diff --name-only HEAD~1 HEAD | grep ".tex$" || true)
-          echo "files=$FILES" >> $GITHUB_OUTPUT
+          # Convert space-separated → newline-separated for latex-action
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          for f in $FILES; do
+            echo "$f" >> $GITHUB_OUTPUT
+          done
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      # Step 2: compile each tex file
+      # Step 2 — compile all modified tex files (if any)
       - name: Build PDFs
-        uses: xu-cheng/latex-action@v3
+        if: steps.tex.outputs.files != ''
+        uses: xu-cheng/latex-action@v4
         with:
           root_file: ${{ steps.tex.outputs.files }}
 
-      # Step 3: commit back the PDFs
+      # Step 3 — commit generated PDFs
       - name: Commit PDFs
+        if: steps.tex.outputs.files != ''
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
           for f in ${{ steps.tex.outputs.files }}; do
-            base="${f%.tex}"
-            pdf="${base}.pdf"
+            pdf="${f%.tex}.pdf"
             if [ -f "$pdf" ]; then
               git add "$pdf"
             fi
