@@ -10,16 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout with depth 2 so HEAD^ exists
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      # Step 1 — detect modified .tex files in *last commit*
+      # Step 1 — detect modified .tex files in the last commit
       - name: Find modified tex files
         id: tex
         run: |
-          # If the repo only has one commit, skip
+          # If no parent commit exists, skip
           if ! git rev-parse HEAD^ >/dev/null 2>&1; then
             echo "files=" >> $GITHUB_OUTPUT
             exit 0
@@ -27,7 +26,7 @@ jobs:
 
           FILES=$(git diff --name-only HEAD^ HEAD -- "*.tex" || true)
 
-          # Write multiline output correctly
+          # Write GitHub multiline output safely
           {
             echo "files<<EOF"
             for f in $FILES; do
@@ -36,26 +35,32 @@ jobs:
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
-      # Step 2 — build PDFs only if files changed
+      # Step 2 — build PDFs only for changed .tex files
       - name: Build PDFs
         if: steps.tex.outputs.files != ''
         uses: xu-cheng/latex-action@v4
         with:
           root_file: ${{ steps.tex.outputs.files }}
 
-      # Step 3 — commit built PDFs back to the repo
+      # Step 3 — commit generated PDFs back to the repo
+      # FIX: properly iterate over multiline output
       - name: Commit PDFs
         if: steps.tex.outputs.files != ''
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-          for f in ${{ steps.tex.outputs.files }}; do
+          # IMPORTANT: read multiline output correctly
+          while IFS= read -r f; do
             pdf="${f%.tex}.pdf"
+            echo "Checking for $pdf"
             if [ -f "$pdf" ]; then
+              echo "Adding $pdf"
               git add "$pdf"
+            else
+              echo "PDF not found: $pdf"
             fi
-          done
+          done <<< "${{ steps.tex.outputs.files }}"
 
           if git diff --cached --quiet; then
             echo "No PDFs to commit"
