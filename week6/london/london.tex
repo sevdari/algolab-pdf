@@ -27,6 +27,17 @@
 % Page margin
 \usepackage[margin=0.9in]{geometry}
 
+%cpp
+\usepackage{listings}
+\usepackage{courier}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  language=C++,
+  columns=fullflexible
+}
+
+
 \title{London}
 \author{Klejdi Sevdari}
 \date{\today}
@@ -54,7 +65,7 @@ We construct a directed graph with
 
 \begin{figure}[!h]
     \centering
-    \includegraphics[width=0.6\linewidth]{week6/london.png}
+    \includegraphics[width=0.6\linewidth]{week6/london/london.png}
     \caption{Simple example of flow construction.}
     \label{fig:example}
 \end{figure}
@@ -68,6 +79,36 @@ We construct a directed graph with
 \noindent We compute the maximum $s$--$t$ flow. Let $n$ be the length of the note. If the max-flow equals $n$, then each character demand is satisfied by some piece, respecting the front/back choices and ensuring no piece is used more than once. \\
 
 \noindent If the flow is strictly less than $n$, the note cannot be constructed.
+
+\subsection*{Code implementation}
+\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
+// init graph
+graph G(26);
+const vertex_desc v_source = boost::add_vertex(G);
+const vertex_desc v_sink = boost::add_vertex(G);
+edge_adder adder(G);
+
+// add edges
+for (auto c : note) {
+    adder.increment_capacity(c - 'A', v_sink);
+}
+
+for (int i = 0; i < h * w; i++) {
+    int f = front[i] - 'A', b = back[i] - 'A';
+    adder.increment_capacity(v_source, f);
+    adder.increment_capacity(f, b);
+}
+
+// solve
+long flow = boost::push_relabel_max_flow(G, v_source, v_sink);
+
+// output
+if(flow==note.size()){
+cout << "Yes\n";
+}else{
+cout << "No\n"; 
+}
+\end{lstlisting}
 
 
 \end{document}
