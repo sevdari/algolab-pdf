@@ -6,34 +6,41 @@ on:
       - "**/*.tex"
 
 jobs:
-  build-pdf:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up LaTeX
+      # Step 1: detect modified tex files
+      - name: Find modified tex files
+        id: tex
+        run: |
+          FILES=$(git diff --name-only HEAD~1 HEAD | grep ".tex$" || true)
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+
+      # Step 2: compile each tex file
+      - name: Build PDFs
         uses: xu-cheng/latex-action@v3
         with:
-          root_file: |
-            $(git diff --name-only HEAD~1 HEAD | grep '.tex$')
+          root_file: ${{ steps.tex.outputs.files }}
 
-      - name: Commit generated PDFs
+      # Step 3: commit back the PDFs
+      - name: Commit PDFs
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-          for f in $(git diff --name-only HEAD~1 HEAD | grep '.tex$'); do
+          for f in ${{ steps.tex.outputs.files }}; do
             base="${f%.tex}"
-            pdf="$base.pdf"
+            pdf="${base}.pdf"
             if [ -f "$pdf" ]; then
               git add "$pdf"
             fi
           done
 
           if git diff --cached --quiet; then
-            echo "No PDFs to commit."
+            echo "Nothing to commit"
             exit 0
           fi
 
